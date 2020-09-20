@@ -2,19 +2,26 @@ package four
 
 import (
 	"fmt"
+	"os"
+	// "errors"
 )
 
+type Player byte
 type State byte
 const (
 	Empty State = '-'
 	Yellow State = 'Y'
 	Red State = 'R'
 )
+type Move int // the column index of the column to toss into
 
-type Board [6][7]State // [rows][columns], row[0] is at the bottom; column[0] is on the left
+const rows = 6
+const columns = 7
 
-func NewBoard() *Board {
-	return &Board{
+type Board [rows][columns]State // [rows][columns], row[0] is at the bottom; column[0] is on the left
+
+func NewBoard() Board {
+	return Board{
 		{'-', '-', '-', '-', '-', '-', '-'},
 		{'-', '-', '-', '-', '-', '-', '-'},
 		{'-', '-', '-', '-', '-', '-', '-'},
@@ -24,22 +31,75 @@ func NewBoard() *Board {
 	}
 }
 
-func Players() []byte {
-	return []byte{'Y', 'R'}
+func Players() []Player {
+	return []Player{'Y', 'R'}
+}
+
+func NextPlayer(p Player) Player {
+	if p == 'Y' {
+		return 'R'
+	} else if p == 'R' {
+		return 'Y'
+	} else {
+		fmt.Fprintf(os.Stderr, "Error: Unable to determined next player for player %q\n", p)
+		os.Exit(1)
+		return '-'
+	}
+}
+
+func PossibleMoves(board Board, player Player) []Move {
+	var result []Move
+	for i := 0; i<columns; i++ {
+		if board[rows-1][i] == '-' {
+			result = append(result, Move(i))
+		}
+	}
+	return result
+}
+
+func MakeMove(b Board, p Player, m Move) (board *Board, column int, row int, Error error) {
+	newBoard := b.Copy()
+	column = int(m)
+
+	if b[rows-1][m] != Empty {
+		return nil, 0, 0, fmt.Errorf("MakeMove: impossible to make move %d; column full", int(m))
+	}
+
+	for r := rows-1; r>=0; r-- {
+		if b[r][m] != Empty {
+			(*newBoard)[r+1][m] = State(p)
+			row = r+1
+			break
+		} else if r == 0 {
+			(*newBoard)[r][m] = State(p)
+			row = r
+			break
+		}
+	}
+
+	return newBoard, column, row, nil
 }
 
 func (b Board) String() string {
-	return fmt.Sprintf(
-		"| %c | %c | %c | %c | %c | %c | %c |\n" +
-		"| %c | %c | %c | %c | %c | %c | %c |\n" +
-		"| %c | %c | %c | %c | %c | %c | %c |\n" +
-		"| %c | %c | %c | %c | %c | %c | %c |\n" +
-		"| %c | %c | %c | %c | %c | %c | %c |\n" +
-		"| %c | %c | %c | %c | %c | %c | %c |\n",
-		b[5][0], b[5][1], b[5][2], b[5][3], b[5][4], b[5][5], b[5][6],
-		b[4][0], b[4][1], b[4][2], b[4][3], b[4][4], b[4][5], b[4][6],
-		b[3][0], b[3][1], b[3][2], b[3][3], b[3][4], b[3][5], b[3][6],
-		b[2][0], b[2][1], b[2][2], b[2][3], b[2][4], b[2][5], b[2][6],
-		b[1][0], b[1][1], b[1][2], b[1][3], b[1][4], b[1][5], b[1][6],
-		b[0][0], b[0][1], b[0][2], b[0][3], b[0][4], b[0][5], b[1][6])
+	var result string
+
+	for r := rows-1; r>=0; r-- {
+		result += "    |"
+		for c := 0; c<columns; c++ {
+			result += " " + string(b[r][c]) + " |"
+		}
+
+		result += "\n"
+	}
+	return result
+}
+
+func (b Board) Copy() *Board {
+	var newBoard Board
+
+	for row := range b {
+		newBoard[row] = b[row]
+	}
+
+	return &newBoard
 }
