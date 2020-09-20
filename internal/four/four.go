@@ -15,20 +15,21 @@ const (
 )
 type Move int // the column index of the column to toss into
 
-const rows = 6
+const rows = 4
 const columns = 7
 
 type Board [rows][columns]State // [rows][columns], row[0] is at the bottom; column[0] is on the left
 
 func NewBoard() Board {
-	return Board{
-		{'-', '-', '-', '-', '-', '-', '-'},
-		{'-', '-', '-', '-', '-', '-', '-'},
-		{'-', '-', '-', '-', '-', '-', '-'},
-		{'-', '-', '-', '-', '-', '-', '-'},
-		{'-', '-', '-', '-', '-', '-', '-'},
-		{'-', '-', '-', '-', '-', '-', '-'},
+	var b Board
+
+	for r := rows-1; r>=0; r-- {
+		for c := 0; c<columns; c++ {
+			b[r][c] = Empty
+		}
 	}
+
+	return b
 }
 
 func Players() []Player {
@@ -91,7 +92,48 @@ func (b Board) String() string {
 
 		result += "\n"
 	}
+
 	return result
+}
+
+func (b Board) PlayerWon(p Player) (bool, string) {
+	// Check for horizontal victory
+	if columns>=4 {
+		for r := 0; r<rows; r++ {
+			for c := 0; c<=columns-4; c++ {
+				if b[r][c] == State(p) && b[r][c+1] == State(p) && b[r][c+2] == State(p) && b[r][c+3] == State(p) {
+					return true, "horizontal"
+				}
+			}
+		}
+	}
+
+	// Check for vertical victory
+	if rows>=4 {
+		for r := 0; r<=rows-4; r++ {
+			for c := columns-1; c>=0; c-- {
+				if b[r][c] == State(p) && b[r+1][c] == State(p) && b[r+2][c] == State(p) && b[r+3][c] == State(p) {
+					return true, "vertical"
+				}
+			}
+		}
+	}
+
+	// Check for diagonal victory
+	if columns >= 4 && rows>=4{
+		for r := 0; r<=rows-4; r++ {
+			for c := 0; c<=columns-4; c++ {
+				if b[r][c] == State(p) && b[r+1][c+1] == State(p) && b[r+2][c+2] == State(p) && b[r+3][c+3] == State(p) {
+					return true, "diagonally, bottom-left to top-right" // bottom-left to top-right
+				}
+				if b[r+3][c] == State(p) && b[r+2][c+1] == State(p) && b[r+1][c+2] == State(p) && b[r][c+3] == State(p) {
+					return true, "diagonally, top-left to bottom-right" // top-left to bottom-right
+				}
+			}
+		}
+	}
+
+	return false, ""
 }
 
 func (b Board) Copy() *Board {
